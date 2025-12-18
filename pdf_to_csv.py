@@ -41,8 +41,8 @@ def extract_label_data(text):
         if i in processed_indices: continue
         
         # Check for hyphen pattern AND slash pattern (strongest signal)
-        # or just hyphen pattern if slash is on same line
-        match_hyphen = re.search(r'([A-Za-z0-9]+)\s*-\s*([A-Za-z0-9]+)\s*-\s*([A-Za-z0-9]+)', line)
+        # Pattern: value - value - value (allowing alphanumeric and special chars like ^)
+        match_hyphen = re.search(r'([^-\s]+)\s*-\s*([^-\s]+)\s*-\s*([^-\s]+)', line)
         match_slash = re.search(r'(\d+)\s*/\s*(\d+)', line)
         
         if match_hyphen:
@@ -88,7 +88,18 @@ def extract_label_data(text):
             # For now, let's just take the first unmatched line as product name.
             pass
 
-    return [product_name, val1, val2, val3, val4, val5, val6]
+    # Combine val3, val4, val5 with hyphens and add leading apostrophe
+    # User requested: 1, 05, 1 -> '1-05-1
+    val345 = ""
+    if val3 and val4 and val5:
+        val345 = f"'{val3}-{val4}-{val5}"
+    
+    # Add leading apostrophe to val6
+    # User requested: 1/1 -> '1/1
+    if val6:
+        val6 = f"'{val6}"
+
+    return [product_name, val1, val2, val345, val6]
 
 def main():
     data_rows = []
