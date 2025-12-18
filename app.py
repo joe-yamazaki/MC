@@ -157,6 +157,10 @@ def main():
                             file_name=filename,
                             mime="text/csv"
                         )
+                        
+                        st.subheader("テキストをコピー")
+                        st.write("右上のコピーボタンからCSVデータをコピーできます。")
+                        st.code(csv_data, language='csv')
                 except Exception as e:
                     st.error(f"エラーが発生しました: {e}")
 
