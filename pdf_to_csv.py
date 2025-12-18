@@ -88,11 +88,11 @@ def extract_label_data(text):
             # For now, let's just take the first unmatched line as product name.
             pass
 
-    # Combine val3, val4, val5 with hyphens and add leading apostrophe
-    # User requested: 1, 05, 1 -> '1-05-1
+    # Combine val3, val4, val5 with hyphens
+    # User requested: 1, 05, 1 -> 1-05-1 (Removed apostrophe)
     val345 = ""
     if val3 and val4 and val5:
-        val345 = f"'{val3}-{val4}-{val5}"
+        val345 = f"{val3}-{val4}-{val5}"
     
     # Add leading apostrophe to val6
     # User requested: 1/1 -> '1/1

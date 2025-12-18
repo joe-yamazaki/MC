@@ -68,11 +68,11 @@ def extract_label_data(text):
         else:
             pass
 
-    # Combine val3, val4, val5 with hyphens and add leading apostrophe
-    # User requested: 1, 05, 1 -> '1-05-1
+    # Combine val3, val4, val5 with hyphens
+    # User requested: 1, 05, 1 -> 1-05-1 (Removed apostrophe)
     val345 = ""
     if val3 and val4 and val5:
-        val345 = f"'{val3}-{val4}-{val5}"
+        val345 = f"{val3}-{val4}-{val5}"
     
     # Add leading apostrophe to val6
     # User requested: 1/1 -> '1/1
@@ -157,10 +157,6 @@ def main():
                             file_name=filename,
                             mime="text/csv"
                         )
-                        
-                        st.subheader("テキストをコピー")
-                        st.write("右上のコピーボタンからCSVデータをコピーできます。")
-                        st.code(csv_data, language='csv')
                 except Exception as e:
                     st.error(f"エラーが発生しました: {e}")
 
