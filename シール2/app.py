@@ -90,7 +90,7 @@ if uploaded_files:
                 all_extracted_data.extend(data)
 
         if all_extracted_data:
-            st.success(f"{len(uploaded_files)} 個のファイルから {len(all_extracted_data)} 行のデータを抽出しました。")
+            st.success(f"{len(all_extracted_data)}件のデータを抽出しました。")
             
             df = pd.DataFrame(all_extracted_data)
             st.dataframe(df, use_container_width=True)
