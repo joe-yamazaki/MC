@@ -142,9 +142,8 @@ def main():
     # Write to CSV
     with open(output_csv, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        # No header requested, but usually good to have. 
-        # The user example didn't show a header, just data: "ﾍﾞｰｽﾊﾞﾝR,1900,673160,1,3,1,1/1"
-        # I will write the data directly.
+        headers = ["品名", "幅", "製番", "記号", "番号", "総数量"]
+        writer.writerow(headers)
         writer.writerows(data_rows)
         
     print(f"Successfully converted {len(data_rows)} labels to {output_csv}")

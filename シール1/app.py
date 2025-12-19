@@ -135,11 +135,14 @@ def main():
                         
                         # Preview
                         st.write("抽出データプレビュー:")
-                        st.dataframe(data_rows)
+                        headers = ["品名", "幅", "製番", "記号", "番号", "総数量"]
+                        df = pd.DataFrame(data_rows, columns=headers)
+                        st.dataframe(df)
                         
                         # Create CSV in memory
                         output = io.StringIO()
                         writer = csv.writer(output)
+                        writer.writerow(headers)
                         writer.writerows(data_rows)
                         csv_data = output.getvalue()
                         
