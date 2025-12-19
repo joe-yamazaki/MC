@@ -81,38 +81,34 @@ st.write("PDFをアップロードすると、左側の現品票からデータ�
 uploaded_files = st.file_uploader("PDFファイルをアップロードしてください", type="pdf", accept_multiple_files=True)
 
 if uploaded_files:
-    all_extracted_data = []
-    
-    with st.spinner('データを抽出中...'):
-        for uploaded_file in uploaded_files:
-            file_bytes = uploaded_file.read()
-            data = extract_pdf_data_from_bytes(file_bytes, uploaded_file.name)
-            all_extracted_data.extend(data)
+    if st.button("変換開始"):
+        all_extracted_data = []
+        
+        with st.spinner('データを抽出中...'):
+            for uploaded_file in uploaded_files:
+                file_bytes = uploaded_file.read()
+                data = extract_pdf_data_from_bytes(file_bytes, uploaded_file.name)
+                all_extracted_data.extend(data)
 
-    if all_extracted_data:
-        st.success(f"{len(uploaded_files)} 個のファイルから {len(all_extracted_data)} 行のデータを抽出しました。")
-        
-        df = pd.DataFrame(all_extracted_data)
-        st.dataframe(df, use_container_width=True)
+        if all_extracted_data:
+            st.success(f"{len(uploaded_files)} 個のファイルから {len(all_extracted_data)} 行のデータを抽出しました。")
+            
+            df = pd.DataFrame(all_extracted_data)
+            st.dataframe(df, use_container_width=True)
 
-        # CSV Download
-        # User requested CSV format: 155842(1/2), T40防火戸用ｽﾁｰﾙ切窓, 660, 1
-        # We'll omit the filename in the final CSV if they want it exactly as before, 
-        # but for multiple files it might be useful. 
-        # Let's stick to the requested 4 columns for the actual CSV content.
-        
-        csv_buffer = io.StringIO()
-        csv_writer = csv.writer(csv_buffer)
-        for row in all_extracted_data:
-            csv_writer.writerow([row["製番"], row["品名"], row["仕様"], row["数量"]])
-        
-        st.download_button(
-            label="CSVをダウンロード",
-            data=csv_buffer.getvalue(),
-            file_name="extracted_data.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning("データが見つかりませんでした。")
+            # CSV Download
+            csv_buffer = io.StringIO()
+            csv_writer = csv.writer(csv_buffer)
+            for row in all_extracted_data:
+                csv_writer.writerow([row["製番"], row["品名"], row["仕様"], row["数量"]])
+            
+            st.download_button(
+                label="CSVをダウンロード",
+                data=csv_buffer.getvalue(),
+                file_name="extracted_data.csv",
+                mime="text/csv",
+            )
+        else:
+            st.warning("データが見つかりませんでした。")
 else:
     st.info("PDFファイルをアップロードして開始してください。")
