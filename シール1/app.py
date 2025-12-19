@@ -4,6 +4,7 @@ import csv
 import re
 import datetime
 import io
+import pandas as pd
 
 def extract_label_data(text):
     if not text:
