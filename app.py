@@ -1,164 +1,118 @@
 import streamlit as st
-import pdfplumber
+import fitz
 import csv
 import re
-import datetime
+import pandas as pd
 import io
 
-def extract_label_data(text):
-    if not text:
-        return None
-    
-    lines = text.split('\n')
-    # Filter out empty lines
-    lines = [line.strip() for line in lines if line.strip()]
-    
-    if not lines:
-        return None
+def extract_pdf_data_from_bytes(pdf_bytes, filename):
+    """
+    Extracts specific data from the left-hand form of each page in the PDF (from bytes).
+    """
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    all_data = []
 
-    product_name = ""
-    val1 = ""
-    val2 = ""
-    val3 = ""
-    val4 = ""
-    val5 = ""
-    val6 = ""
-    
-    # Iterate through lines to find patterns
-    processed_indices = set()
-    
-    # 1. Find Bottom Line first (most distinct)
-    for i, line in enumerate(lines):
-        if i in processed_indices: continue
-        
-        # Pattern: value - value - value (allowing alphanumeric and special chars like ^)
-        match_hyphen = re.search(r'([^-\s]+)\s*-\s*([^-\s]+)\s*-\s*([^-\s]+)', line)
-        match_slash = re.search(r'(\d+)\s*/\s*(\d+)', line)
-        
-        if match_hyphen:
-            val3 = match_hyphen.group(1)
-            val4 = match_hyphen.group(2)
-            val5 = match_hyphen.group(3)
-            processed_indices.add(i)
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        midpoint = page.rect.width / 2
+        words = page.get_text("words")
+
+        # Group words on the left side
+        left_words = [w for w in words if w[2] < midpoint]
+
+        # 1. Extract '製番' (Seiban)
+        seiban = ""
+        for w in left_words:
+            if 40 < w[1] < 80:
+                if "(" in w[4] or re.match(r'^\d+', w[4]):
+                    seiban = w[4]
+                    break
+
+        # 2. Extract item rows (品名, 仕様, 数量)
+        rows_data = {}
+        for w in left_words:
+            x0, y0, x1, y1, text = w[0], w[1], w[2], w[3], w[4]
+            if 190 < y0 < 460:
+                line_y = round(y0)
+                if line_y not in rows_data:
+                    rows_data[line_y] = []
+                rows_data[line_y].append(w)
+
+        for line_y in sorted(rows_data.keys()):
+            line_words = sorted(rows_data[line_y], key=lambda w: w[0])
+            himmey = ""
+            shiyou = ""
+            suuryou = ""
             
-            # Slash might be on the same line
-            if match_slash:
-                val6 = f"{match_slash.group(1)}/{match_slash.group(2)}"
-            break # Assume only one bottom line
-            
-    # 2. Find Value Line (middle)
-    for i, line in enumerate(lines):
-        if i in processed_indices: continue
-        
-        # Look for "1900 ( 673160)" pattern
-        match_middle = re.search(r'(\d+)\s*\(\s*(\d+)\s*\)', line)
-        if match_middle:
-            val1 = match_middle.group(1)
-            val2 = match_middle.group(2)
-            processed_indices.add(i)
-            break
-        
-    # 3. Find Product Name (remaining line, usually first)
-    for i, line in enumerate(lines):
-        if i in processed_indices: continue
-        
-        if not product_name:
-            product_name = line
-            processed_indices.add(i)
-        else:
-            pass
+            for w in line_words:
+                x0, text = w[0], w[4]
+                if x0 < 150: # 品名 area
+                    himmey += text + " "
+                elif 200 < x0 < 320: # 仕様 area
+                    shiyou += text
+                elif 350 < x0 < 410: # 数量 area
+                    suuryou = text
 
-    # Combine val3, val4, val5 with hyphens
-    # User requested: 1, 05, 1 -> 1-05-1 (Removed apostrophe)
-    val345 = ""
-    if val3 and val4 and val5:
-        val345 = f"{val3}-{val4}-{val5}"
+            himmey = himmey.strip()
+            shiyou_match = re.search(r'^\d+', shiyou)
+            shiyou_clean = shiyou_match.group(0) if shiyou_match else ""
+
+            if himmey or shiyou_clean or suuryou:
+                if himmey == "品名" or shiyou == "仕様" or suuryou == "数量":
+                    continue
+                if himmey:
+                    all_data.append({
+                        "ファイル名": filename,
+                        "製番": seiban,
+                        "品名": himmey,
+                        "仕様": shiyou_clean,
+                        "数量": suuryou
+                    })
+
+    doc.close()
+    return all_data
+
+# Streamlit UI
+st.set_page_config(page_title="PDFデータ抽出ツール", layout="wide")
+
+st.title("📄 PDFデータ抽出ツール (現品票)")
+st.write("PDFをアップロードすると、左側の現品票からデータを抽出します。")
+
+uploaded_files = st.file_uploader("PDFファイルをアップロードしてください", type="pdf", accept_multiple_files=True)
+
+if uploaded_files:
+    all_extracted_data = []
     
-    # Add leading apostrophe to val6
-    # User requested: 1/1 -> '1/1
-    if val6:
-        val6 = f"'{val6}"
+    with st.spinner('データを抽出中...'):
+        for uploaded_file in uploaded_files:
+            file_bytes = uploaded_file.read()
+            data = extract_pdf_data_from_bytes(file_bytes, uploaded_file.name)
+            all_extracted_data.extend(data)
 
-    return [product_name, val1, val2, val345, val6]
+    if all_extracted_data:
+        st.success(f"{len(uploaded_files)} 個のファイルから {len(all_extracted_data)} 行のデータを抽出しました。")
+        
+        df = pd.DataFrame(all_extracted_data)
+        st.dataframe(df, use_container_width=True)
 
-def process_pdf(pdf_file):
-    data_rows = []
-    
-    with pdfplumber.open(pdf_file) as pdf:
-        for page in pdf.pages:
-            width = page.width
-            height = page.height
-            
-            col_width = width / 3
-            # Fixed row height and margin based on analysis
-            row_height = 72
-            top_margin = 20
-            
-            for row in range(10):
-                for col in range(3):
-                    # Calculate coordinates with fixed margin and height
-                    x0 = col * col_width
-                    top = top_margin + (row * row_height)
-                    x1 = (col + 1) * col_width
-                    bottom = top + row_height
-                    
-                    # Crop the cell
-                    cell = page.crop((x0, top, x1, bottom))
-                    
-                    # Extract text
-                    text = cell.extract_text(layout=True)
-                    
-                    # Parse data
-                    row_data = extract_label_data(text)
-                    
-                    if row_data:
-                        # Validation: Product name should not look like the bottom row
-                        if re.search(r'[A-Za-z0-9]+\s*-\s*[A-Za-z0-9]+\s*-\s*[A-Za-z0-9]+', row_data[0]):
-                            continue
-                            
-                        data_rows.append(row_data)
-    return data_rows
-
-def main():
-    st.title("部材シール PDF to CSV Converter")
-    st.write("PDFファイルをアップロードして、CSVに変換します。")
-
-    uploaded_file = st.file_uploader("PDFファイルを選択してください", type="pdf")
-
-    if uploaded_file is not None:
-        if st.button("変換開始"):
-            with st.spinner("変換中..."):
-                try:
-                    data_rows = process_pdf(uploaded_file)
-                    
-                    if not data_rows:
-                        st.warning("データが見つかりませんでした。")
-                    else:
-                        st.success(f"{len(data_rows)}件のデータを抽出しました。")
-                        
-                        # Preview
-                        st.write("抽出データプレビュー:")
-                        st.dataframe(data_rows)
-                        
-                        # Create CSV in memory
-                        output = io.StringIO()
-                        writer = csv.writer(output)
-                        writer.writerows(data_rows)
-                        csv_data = output.getvalue()
-                        
-                        # Generate filename with timestamp
-                        now = datetime.datetime.now()
-                        timestamp = now.strftime("%Y%m%d_%H%M%S")
-                        filename = f"output_{timestamp}.csv"
-                        
-                        st.download_button(
-                            label="CSVをダウンロード",
-                            data=csv_data,
-                            file_name=filename,
-                            mime="text/csv"
-                        )
-                except Exception as e:
-                    st.error(f"エラーが発生しました: {e}")
-
-if __name__ == "__main__":
-    main()
+        # CSV Download
+        # User requested CSV format: 155842(1/2), T40防火戸用ｽﾁｰﾙ切窓, 660, 1
+        # We'll omit the filename in the final CSV if they want it exactly as before, 
+        # but for multiple files it might be useful. 
+        # Let's stick to the requested 4 columns for the actual CSV content.
+        
+        csv_buffer = io.StringIO()
+        csv_writer = csv.writer(csv_buffer)
+        for row in all_extracted_data:
+            csv_writer.writerow([row["製番"], row["品名"], row["仕様"], row["数量"]])
+        
+        st.download_button(
+            label="CSVをダウンロード",
+            data=csv_buffer.getvalue(),
+            file_name="extracted_data.csv",
+            mime="text/csv",
+        )
+    else:
+        st.warning("データが見つかりませんでした。")
+else:
+    st.info("PDFファイルをアップロードして開始してください。")
