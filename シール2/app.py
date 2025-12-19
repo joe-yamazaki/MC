@@ -72,10 +72,10 @@ def extract_pdf_data_from_bytes(pdf_bytes):
     return all_data
 
 # Streamlit UI
-st.set_page_config(page_title="現品票 PDF to CSV Converter", layout="wide")
+st.set_page_config(page_title="現品票 PDF to CSV Converter")
 
-st.title("📄 現品票 PDF to CSV Converter")
-st.write("PDFをアップロードすると、左側の現品票からデータを抽出します。")
+st.title("現品票 PDF to CSV Converter")
+st.write("PDFファイルをアップロードして、CSVに変換します。")
 
 uploaded_files = st.file_uploader("PDFファイルをアップロードしてください", type="pdf", accept_multiple_files=True)
 
