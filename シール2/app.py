@@ -5,7 +5,7 @@ import re
 import pandas as pd
 import io
 
-def extract_pdf_data_from_bytes(pdf_bytes, filename):
+def extract_pdf_data_from_bytes(pdf_bytes):
     """
     Extracts specific data from the left-hand form of each page in the PDF (from bytes).
     """
@@ -62,7 +62,6 @@ def extract_pdf_data_from_bytes(pdf_bytes, filename):
                     continue
                 if himmey:
                     all_data.append({
-                        "ファイル名": filename,
                         "製番": seiban,
                         "品名": himmey,
                         "仕様": shiyou_clean,
@@ -87,7 +86,7 @@ if uploaded_files:
         with st.spinner('データを抽出中...'):
             for uploaded_file in uploaded_files:
                 file_bytes = uploaded_file.read()
-                data = extract_pdf_data_from_bytes(file_bytes, uploaded_file.name)
+                data = extract_pdf_data_from_bytes(file_bytes)
                 all_extracted_data.extend(data)
 
         if all_extracted_data:
