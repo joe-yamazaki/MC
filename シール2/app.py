@@ -77,17 +77,15 @@ st.set_page_config(page_title="現品票 PDF to CSV Converter")
 st.title("現品票 PDF to CSV Converter")
 st.write("PDFファイルをアップロードして、CSVに変換します。")
 
-uploaded_files = st.file_uploader("PDFファイルを選択してください", type="pdf", accept_multiple_files=True)
+uploaded_file = st.file_uploader("PDFファイルを選択してください", type="pdf", accept_multiple_files=False)
 
-if uploaded_files:
+if uploaded_file:
     if st.button("変換開始"):
         all_extracted_data = []
         
         with st.spinner('データを抽出中...'):
-            for uploaded_file in uploaded_files:
-                file_bytes = uploaded_file.read()
-                data = extract_pdf_data_from_bytes(file_bytes)
-                all_extracted_data.extend(data)
+            file_bytes = uploaded_file.read()
+            all_extracted_data = extract_pdf_data_from_bytes(file_bytes)
 
         if all_extracted_data:
             st.success(f"{len(all_extracted_data)}件のデータを抽出しました。")
@@ -109,5 +107,4 @@ if uploaded_files:
             )
         else:
             st.warning("データが見つかりませんでした。")
-else:
-    st.info("PDFファイルをアップロードして開始してください。")
+

@@ -118,6 +118,7 @@ def process_pdf(pdf_file):
     return data_rows
 
 def main():
+    st.set_page_config(page_title="現品票 PDF to CSV Converter")
     st.title("部材シール PDF to CSV Converter")
     st.write("PDFファイルをアップロードして、CSVに変換します。")
 
