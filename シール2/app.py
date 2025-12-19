@@ -77,7 +77,7 @@ st.set_page_config(page_title="現品票 PDF to CSV Converter")
 st.title("現品票 PDF to CSV Converter")
 st.write("PDFファイルをアップロードして、CSVに変換します。")
 
-uploaded_files = st.file_uploader("PDFファイルをアップロードしてください", type="pdf", accept_multiple_files=True)
+uploaded_files = st.file_uploader("PDFファイルを選択してください", type="pdf", accept_multiple_files=True)
 
 if uploaded_files:
     if st.button("変換開始"):
