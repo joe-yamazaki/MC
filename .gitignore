@@ -1,6 +1,15 @@
+*.pdf
+.DS_Store
 __pycache__/
 *.pyc
-.DS_Store
-.env
+*.pyo
+*.pyd
+.Python
+env/
 venv/
+pip-log.txt
+pip-delete-this-directory.txt
 .venv/
+.env
+.vscode/
+.idea/
